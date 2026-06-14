@@ -99,10 +99,10 @@
     <button id="sendBtn" class="btn-send" disabled>えさやり時刻を送信</button>
 </div>
 
-    <button id="esayari" class="btn-send" disabled>すぐにえさやり</button>
+<button id="esayari" class="btn-send" disabled>えさやり</button>
 </div>
 
-     <button id="teishi" class="btn-send" disabled>強制停止</button>
+<button id="teishi" class="btn-send" disabled>強制停止</button>
 </div>
 
 
@@ -147,37 +147,7 @@
         }
     });
 
-      // 強制停止ボタンの処理
-   teishi.addEventListener('click', async () => {
-        if (!writer) return;
-
-        try {
-            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
-            await writer.write(8888 + '\n');
-            alert(`送信しました: ${8888}`);
-        } catch (error) {
-            console.error("送信エラー:", error);
-            alert("データの送信に失敗しました。");
-        }
-    });   
-  
-
-        
-}// えさやりボタンの処理
-    esayari.addEventListener('click', async () => {
-        if (!writer) return;
-
-        try {
-            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
-            await writer.write(9999 + '\n');
-            alert(`送信しました: ${9999}`);
-        } catch (error) {
-            console.error("送信エラー:", error);
-            alert("データの送信に失敗しました。");
-        }
-    });   
-
- // 送信ボタンの処理
+    // 送信ボタンの処理
     sendBtn.addEventListener('click', async () => {
         if (!writer) return;
 
@@ -200,6 +170,35 @@
             alert("データの送信に失敗しました。");
         }
     });
+
+     // えさやりボタンの処理
+    esayari.addEventListener('click', async () => {
+        if (!writer) return;
+
+        try {
+            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
+            await writer.write(9999 + '\n');
+            alert(`送信しました: ${9999}`);
+        } catch (error) {
+            console.error("送信エラー:", error);
+            alert("データの送信に失敗しました。");
+        }
+    });
+
+　　  // 強制停止ボタンの処理
+    teishi.addEventListener('click', async () => {
+        if (!writer) return;
+
+        try {
+            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
+            await writer.write(8888 + '\n');
+            alert(`送信しました: ${8888}`);
+        } catch (error) {
+            console.error("送信エラー:", error);
+            alert("データの送信に失敗しました。");
+        }
+    });
+
 
 // データ受信を常時監視するループ関数
     async function readLoop() {
