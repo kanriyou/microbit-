@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>micro:bit 自動えさやり機設定ツール</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
+            width: 350px;
+        }
+        h2 {
+            margin-top: 0;
+            color: #4a5568;
+        }
+        .status {
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            padding: 8px;
+            border-radius: 6px;
+            background-color: #edf2f7;
+            color: #4a5568;
+        }
+        .status.connected {
+            background-color: #c6f6d5;
+            color: #22543d;
+        }
+        button, input[type="time"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border: 1px solid #cbd5e0;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        button {
+            cursor: pointer;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .btn-connect {
+            background-color: #4299e1;
+            color: white;
+            border: none;
+        }
+        .btn-connect:hover { background-color: #3182ce; }
+        .btn-send {
+            background-color: #48bb78;
+            color: white;
+            border: none;
+        }
+        .btn-send:hover { background-color: #38a169; }
+        button:disabled {
+            background-color: #e2e8f0;
+            color: #a0aec0;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>micro:bit 自動えさやり機設定ツール</h2>
+    <div id="status" class="status">状態: 未接続</div>
+    
+    <button id="connectBtn" class="btn-connect">micro:bit と接続</button>
+    
+    
+ <div class="display-panel clearfix">
+        <span>micro:bitの現在時刻:</span>
+        <span id="currentTimeDisp" class="display-value">--:--</span>
+    </div>
+
+　　<label for="timeInput" style="display:block; text-align:left; font-size:0.9em; color:#4a5568; margin-bottom: 4px;">設定時刻:</label>
+    <input type="time" id="timeInput" value="08:00">
+    
+　
+    
+<hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+    
+    <label for="timeInput" style="display:block; text-align:left; font-size:0.9em; color:#718096;">送信する時刻を選択:</label>
+    <input type="time" id="timeInput" value="12:00">
+    
+    <button id="sendBtn" class="btn-send" disabled>えさやり時刻を送信</button>
+</div>
+
+    <button id="esayari" class="btn-send" disabled>すぐにえさやり</button>
+</div>
+
+     <button id="teishi" class="btn-send" disabled>強制停止</button>
+</div>
+
+
+<script>
+    let port;
+    let writer;
+
+    const connectBtn = document.getElementById('connectBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const timeInput = document.getElementById('timeInput');
+    const statusDiv = document.getElementById('status');
+
+    // 接続・切断ボタンの処理
+    connectBtn.addEventListener('click', async () => {
+        if (port) {
+            // すでに接続されている場合は切断処理
+            await disconnect();
+            return;
+        }
+
+        try {
+            // ユーザーにシリアルポートの選択を要求
+            port = await navigator.serial.requestPort();
+            // micro:bitの一般的な通信速度 115200 でオープン
+            await port.open({ baudRate: 115200 });
+            
+            // 送信用のストリームを設定
+            const textEncoder = new TextEncoderStream();
+            textEncoder.readable.pipeTo(port.writable);
+            writer = textEncoder.writable.getWriter();
+
+            // UI状態の更新
+            statusDiv.textContent = "状態: 接続済み";
+            statusDiv.classList.add('connected');
+            connectBtn.textContent = "接続解除";
+            sendBtn.disabled = false;
+
+        } catch (error) {
+            console.error("接続エラー:", error);
+            alert("接続に失敗したか、キャンセルされました。");
+            port = null;
+        }
+    });
+
+      // 強制停止ボタンの処理
+   teishi.addEventListener('click', async () => {
+        if (!writer) return;
+
+        try {
+            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
+            await writer.write(8888 + '\n');
+            alert(`送信しました: ${8888}`);
+        } catch (error) {
+            console.error("送信エラー:", error);
+            alert("データの送信に失敗しました。");
+        }
+    });   
+  
+
+        
+}// えさやりボタンの処理
+    esayari.addEventListener('click', async () => {
+        if (!writer) return;
+
+        try {
+            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
+            await writer.write(9999 + '\n');
+            alert(`送信しました: ${9999}`);
+        } catch (error) {
+            console.error("送信エラー:", error);
+            alert("データの送信に失敗しました。");
+        }
+    });   
+
+ // 送信ボタンの処理
+    sendBtn.addEventListener('click', async () => {
+        if (!writer) return;
+
+        // 時刻文字列（"HH:MM"）を取得
+        const timeVal = timeInput.value; 
+        if (!timeVal) {
+            alert("時刻を入力してください。");
+            return;
+        }
+
+        // コロンを取り除いて4桁の数字（例: "1234"）にする
+        const fourDigitTime = timeVal.replace(':', '');
+
+        try {
+            // 改行コード（\n）を付加してシリアル送信（micro:bit側で受信の区切りにしやすくするため）
+            await writer.write(fourDigitTime + '\n');
+            alert(`送信しました: ${fourDigitTime}`);
+        } catch (error) {
+            console.error("送信エラー:", error);
+            alert("データの送信に失敗しました。");
+        }
+    });
+
+// データ受信を常時監視するループ関数
+    async function readLoop() {
+        const textDecoder = new TextDecoderStream();
+        const readableStreamClosed = port.readable.pipeTo(textDecoder.writable);
+        reader = textDecoder.readable.getReader();
+
+        let buffer = '';
+
+        try {
+            while (keepReading) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                
+                if (value) {
+                    buffer += value;
+                    // 改行コード（\n または \r）が含まれているか確認
+                    if (buffer.includes('\n') || buffer.includes('\r')) {
+                        // 改行で分割して、完全な1行を取得
+                        const lines = buffer.split(/\r?\n/);
+                        // 最後の要素はまだ途中のデータである可能性があるためバッファに戻す
+                        buffer = lines.pop(); 
+
+                        // 完了した行を処理
+                        for (const line of lines) {
+                            const trimmedLine = line.trim();
+                            if (trimmedLine !== "") {
+                                processReceivedData(trimmedLine);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("受信エラー:", error);
+        } finally {
+            reader.releaseLock();
+        }
+    }
+
+    // 受信した数値を判定してUIに反映する関数
+    function processReceivedData(data) {
+        const num = parseInt(data, 10);
+        if (isNaN(num)) return; // 数値以外は無視
+
+        if (num >= 10000) {
+            // 【10000以上の場合】10000を引いて現在時刻に表示
+            const timeNum = num - 10000;
+            currentTimeDisp.textContent = formatToTimeString(timeNum);
+        } else {
+            // 【10000未満の場合】設定時刻の欄に上書き表示
+            timeInput.value = formatToTimeString(num);
+        }
+    }
+
+    // 数値（例: 830 や 1425）を "HH:MM" 形式の文字列（"08:30", "14:25"）に変換するヘルパー
+    function formatToTimeString(num) {
+        // 最大でも2359（23時59分）を想定し、4桁の文字列にパディング
+        const str = num.toString().padStart(4, '0');
+        const hours = str.slice(0, 2);
+        const minutes = str.slice(2, 4);
+        return `${hours}:${minutes}`;
+    }   
+ // 切断処理の関数
+    async function disconnect() {
+        if (writer) {
+            writer.releaseLock();
+            writer = null;
+        }
+        if (port) {
+            await port.close();
+            port = null;
+        }
+        statusDiv.textContent = "状態: 未接続";
+        statusDiv.classList.remove('connected');
+        connectBtn.textContent = "micro:bit と接続";
+        sendBtn.disabled = true;
+    }
+
+    // ページが閉じられるときにポートをクローズする
+    window.addEventListener('beforeunload', async () => {
+        await disconnect();
+    });
+</script>
+
+</body>
+</html>
